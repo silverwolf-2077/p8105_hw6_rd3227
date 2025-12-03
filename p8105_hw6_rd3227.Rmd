@@ -156,18 +156,113 @@ bootstrap_results |>
   )
 ```
 
+Both bootstrap distributions are clearly skewed rather than symmetric, so a normal-theory approximation is not ideal. For r2, the bootstrap values are tightly concentrated around about 0.94, indicating consistently high explained variation. For b1/b2, most estimates lie roughly between −400 and −100, centered at a negative value. This skewness in both summaries motivates using the bootstrap distribution directly to obtain confidence intervals.
+
 Identify the 95% confidence interval of the estimates.
 
 ```{r}
 bootstrap_results |> 
+  pivot_longer(
+    r2:beta_ratio,
+    names_to = "estimate",
+    values_to = "value"
+  ) |> 
+  group_by(estimate) |> 
   summarize(
-    r2_ci_lower = quantile(r2, 0.025),
-    r2_ci_upper = quantile(r2, 0.975),
-    beta_ratio_ci_lower = quantile(beta_ratio, 0.025),
-    beta_ratio_ci_upper = quantile(beta_ratio, 0.975)
+    CI_lower = quantile(value, 0.025),
+    CI_upper = quantile(value, 0.975)
   ) |> 
   knitr::kable()
 ```
+
+# Problem 3
+
+Import and clean data.
+
+```{r}
+bwt_df =
+  read_csv("data/birthweight.csv") |> 
+  mutate(
+    babysex = factor(babysex, 
+                     levels = c(1, 2), 
+                     labels = c("male", "female")),
+    malform = factor(malform,
+                     levels = c(0, 1),
+                     labels = c("absent", "present")),
+    mrace = factor(mrace,
+                   levels = c(1, 2, 3, 4, 8),
+                   labels = c("White", "Black", "Asian", "Puerto Rican", "Other")),
+    frace = factor(frace,
+                   levels = c(1, 2, 3, 4, 8, 9),
+                   labels = c("White", "Black", "Asian", "Puerto Rican", "Other", "Unknown"))
+  ) |> 
+  drop_na() |> 
+  filter(mrace != "Unknown",
+         frace != "Unknown")
+```
+
+Build initial model.
+
+```{r}
+bwt_model_0 = 
+  bwt_df |> 
+  lm(
+    bwt ~ babysex + bhead + blength +
+      delwt + fincome + frace +
+      gaweeks + malform +
+      menarche + mheight + momage + mrace +
+      parity + pnumlbw + pnumsga +
+      ppbmi + ppwt +
+      smoken + wtgain,
+    data = _
+  )
+```
+
+Exclude insignificant variables.
+
+```{r}
+bwt_model_0 |>
+  broom::tidy() |> 
+  drop_na() |> 
+  filter(
+    term != "(Intercept)", p.value < 0.05
+  )
+
+bwt_model_1 = 
+  bwt_df |> 
+  lm(
+    bwt ~ babysex + bhead + blength + delwt + gaweeks + mrace + parity + smoken,
+    data = _
+  )
+
+bwt_model_1 |> 
+  broom::tidy()
+```
+
+Look at residuals.
+
+```{r}
+bwt_df = 
+  bwt_df |> 
+  add_residuals(bwt_model_1) |> 
+  add_predictions(bwt_model_1)
+
+bwt_df |> 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  labs(
+    x = "Fitted values",
+    y = "Residuals",
+    title = "Residuals vs fitted values for birthweight model"
+  ) +
+  theme_minimal()
+```
+
+The residuals are roughly centered around zero with no strong pattern across fitted birthweights, suggesting the linearity assumption is reasonable and variance is approximately constant. A few large residuals appear as outliers, but there is no obvious severe violation of model assumptions.
+
+
+
+
 
 
 
