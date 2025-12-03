@@ -132,6 +132,43 @@ bootstrap_results =
   select(.id, r2, beta_ratio)
 ```
 
+Plot the distribution of the estimates.
+
+```{r}
+bootstrap_results |> 
+  ggplot(aes(x = r2)) +
+  geom_density() +
+  theme_minimal() +
+  labs(
+    x = expression(r^2),
+    y = "Frequency",
+    title = "Bootstrap distribution of R-squared"
+  )
+
+bootstrap_results |> 
+  ggplot(aes(x = beta_ratio)) +
+  geom_density() +
+  theme_minimal() +
+  labs(
+    x = expression(beta[1] / beta[2]),
+    y = "Frequency",
+    title = expression("Bootstrap distribution of " ~ beta[1] / beta[2])
+  )
+```
+
+Identify the 95% confidence interval of the estimates.
+
+```{r}
+bootstrap_results |> 
+  summarize(
+    r2_ci_lower = quantile(r2, 0.025),
+    r2_ci_upper = quantile(r2, 0.975),
+    beta_ratio_ci_lower = quantile(beta_ratio, 0.025),
+    beta_ratio_ci_upper = quantile(beta_ratio, 0.975)
+  ) |> 
+  knitr::kable()
+```
+
 
 
 
