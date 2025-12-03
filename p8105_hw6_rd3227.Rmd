@@ -36,16 +36,34 @@ homicide_df =
   read_csv("data/homicide-data.csv") |> 
   mutate(
     city_state = str_c(city, ", ", state),
-    solved = if_else(
+    resolved = if_else(
       disposition == "Closed by arrest", 1, 0
     ),
-    victim_age = as.numeric(victim_age)
+    victim_age = as.numeric(victim_age),
+    victim_sex = fct_relevel(victim_sex, "Female")
   ) |> 
   filter(
     !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
     victim_race %in% c("White", "Black")
   )
 ```
+
+For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors.
+
+```{r}
+fit_Baltimore = 
+  homicide_df |> 
+  filter(city_state == "Baltimore, MD") |> 
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = _, family = binomial())
+
+fit_Baltimore |> 
+  broom::tidy(conf.int = TRUE) |> 
+  mutate(OR = exp(estimate)) |> 
+  knitr::kable()
+```
+
+The adjusted odds ratio for having a homicide solved, comparing male victims to female victims while holding age and race constant, is 0.43 with a 95% confidence interval of (0.32, 0.56).
+
 
 
 
